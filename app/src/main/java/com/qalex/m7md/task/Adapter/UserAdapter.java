@@ -26,6 +26,7 @@ import java.util.List;
 public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder> {
 
 
+
     private List<User> userData;
     private int rowLayout;
     private Context context;
@@ -95,12 +96,11 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
         });
 
 
-
     }
 
     @Override
     public int getItemCount() {
-        return userData.size();
+        return userData == null ? 0 : userData.size();
     }
 
 

@@ -7,15 +7,17 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.qalex.m7md.task.Adapter.SetAdapter;
+import com.qalex.m7md.task.Adapter.UserAdapter;
+import com.qalex.m7md.task.Storage.SharedPreferenceUtilities;
 import com.qalex.m7md.task.rest.ApiClient;
 import com.qalex.m7md.task.rest.ApiInterface;
 import com.qalex.m7md.task.R;
 import com.qalex.m7md.task.Model.User;
-import com.qalex.m7md.task.Adapter.UserAdapter;
+import com.qalex.m7md.task.rest.InternetConnection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,15 +29,26 @@ import retrofit2.Response;
 public class ScrollingActivity extends AppCompatActivity {
 
 
+    Boolean more = false, DataAvailable = true;
+    LinearLayoutManager mLayoutManager;
+   // private boolean loading = true;
+   // int pastVisiblesItems, visibleItemCount, totalItemCount;
 
-    private RecyclerView recyclerView;
+    private RecyclerView mrecyclerView;
+    private SetAdapter adapter;
     private UserAdapter userAdapter;
 
     private final static int ID = 0;
+    private final static int per_page = 10;
 
-    private List<User> dataArrayList;
+    private List<User> dataArrayList = null;
+    private List<User> newArrayList = null;
 
-   ApiInterface apiService;
+    private ApiInterface apiService;
+
+    private SharedPreferenceUtilities myPrefs;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,47 +56,152 @@ public class ScrollingActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        recyclerView=(RecyclerView) findViewById(R.id.user_recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+        mrecyclerView=(RecyclerView) findViewById(R.id.user_recycler_view);
+        mrecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+      //  new LinearLayoutManager(getApplicationContext())
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "No action", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "No action ", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
 
+        myPrefs = new SharedPreferenceUtilities(getApplicationContext());
+        adapter = new SetAdapter(getApplicationContext());
+        dataArrayList = new ArrayList<>();
+        dataArrayList.clear();
+        newArrayList = new ArrayList<>();
+//////////////////////////////////////// NetWork Connection Test /////////////////////
+        if (InternetConnection.checkConnection(getBaseContext())) {
+            callingAPI(ID);
+        } else {
+            Toast.makeText(getBaseContext(),"No Internet Connection ...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getBaseContext(),"Load Cached Data ...", Toast.LENGTH_SHORT).show();
+            dataArrayList = myPrefs.LoadSharedData();
+            adapter.setAdapterToDisplay(dataArrayList,mrecyclerView);
+        }
 
-        apiService = ApiClient.getClient().create(ApiInterface.class);
-
-         callingAPI(ID);
-
+///////////////////////////////////////////////////////
 
     }
 
-    private void callingAPI(int ID) {
+    private void callingAPI(final int ID) {
 
-        Call<List<User>> call = apiService.getUser(ID);
-        dataArrayList = new ArrayList<>();
+        apiService = ApiClient.getClient().create(ApiInterface.class);
+        Call<List<User>> call = apiService.getUser(ID,per_page);
+
         call.enqueue(new Callback<List<User>>() {
             @Override
             public void onResponse(Call<List<User>>call, Response<List<User>> response) {
 
-                dataArrayList = response.body();
-                userAdapter=new UserAdapter(dataArrayList,R.layout.list_item_user,getApplicationContext());
-                recyclerView.setAdapter(userAdapter);
-                    Toast.makeText(getBaseContext(),"he  "+dataArrayList.get(1).getLogIn(), Toast.LENGTH_LONG).show();
+               if(more == true){
+
+                   newArrayList = response.body();
+
+                   if(newArrayList.size()>0 || newArrayList == null){
+                       //add loaded data
+                       dataArrayList.addAll(newArrayList);
+                   }else{//result size 0 means there is no more data available at server
+                       DataAvailable = false;
+                       //telling adapter to stop calling load more as no more server data available
+                       Toast.makeText(getBaseContext(),"No More Data Available",Toast.LENGTH_LONG).show();
+                   }
+
+                   // userAdapter.notifyDataSetChanged();
+                }
+                else
+                   dataArrayList = response.body();
+                //   myPrefs.saveUsers(dataArrayList);
+
+                adapter.setAdapterToDisplay(dataArrayList,mrecyclerView);
+             //   userAdapter.notifyDataSetChanged();
+                //  Toast.makeText(getBaseContext(),"he  "+dataArrayList, Toast.LENGTH_LONG).show();
+
+          //      myPrefs.saveUsers(getApplicationContext(),response.body());
+
+                  //  Toast.makeText(getBaseContext(),"he  "+dataArrayList.get(1).getLogIn(), Toast.LENGTH_LONG).show();
+               /* userAdapter.setLoadMoreListener(new UserAdapter.OnLoadMoreListener() {
+                    @Override
+                    public void onLoadMore() {
+
+                        mrecyclerView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                int index = userAdapter.getItemCount() - 1;
+                                loadMore(index);
+                            }
+                        });
+                        //Calling loadMore function in Runnable to fix the
+                        // java.lang.IllegalStateException: Cannot call this method while RecyclerView is computing a layout or scrolling error
+                    }
+                });
+*/
+         mrecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener()
+                {
+
+                    @Override
+                    public void onScrolled(RecyclerView recyclerView, int dx,int dy)
+                    {
+                        super.onScrolled(recyclerView, dx, dy);
+                        LinearLayoutManager layoutManager=LinearLayoutManager.class.cast(recyclerView.getLayoutManager());
+                        int visibleItemCount        = layoutManager.getChildCount();
+                        int totalItemCount          = layoutManager.getItemCount();
+                        int firstVisibleItemPosition= layoutManager.findFirstVisibleItemPosition();
+
+                        // Load more if we have reach the end to the recyclerView
+                        if (DataAvailable==true && (visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
+                         int inc = ID + 10;
+                         callingAPI(inc);
+                            more = true;
+                        //   Toast.makeText(getBaseContext(),"Load more Data "+dx+" - " + dy, Toast.LENGTH_SHORT).show();
+
+                        }
+
+                    }
+
+                    @Override
+                    public void onScrollStateChanged(RecyclerView recyclerView,int newState)
+                    {
+
+                    }
+                });
+
+
+           /*     mrecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    @Override
+                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                       // LinearLayoutManager layoutManager=LinearLayoutManager.class.cast(recyclerView.getLayoutManager());
+                        int totalItemCount = mLayoutManager.getItemCount();
+                        int lastVisible = mLayoutManager.findLastVisibleItemPosition();
+
+                        boolean endHasBeenReached = lastVisible + 5 >= totalItemCount;
+                        if (totalItemCount > 0 && endHasBeenReached) {
+                            //you have reached to the bottom of your recycler view
+                            int inc = ID + 10;
+                            callingAPI(inc);
+                        }
+                    }
+                });*/
+
+
             }
 
             @Override
             public void onFailure(Call<List<User>>call, Throwable t) {
-                // Log error here since request failed
-                Log.e("tag", t.toString());
-                //Toast.makeText(getBaseContext(),t.toString(), Toast.LENGTH_LONG).show();
+
+
+                Toast.makeText(getBaseContext(),"Fail to connect to API ...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getBaseContext(),"Load Cached Data ...", Toast.LENGTH_SHORT).show();
+
+               dataArrayList = myPrefs.LoadSharedData();
+               adapter.setAdapterToDisplay(dataArrayList,mrecyclerView);
+;
             }
         });
-
     }
+
 }
