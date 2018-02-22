@@ -140,11 +140,7 @@ public class ScrollingActivity extends AppCompatActivity {
 
                     }
 
-                    @Override
-                    public void onScrollStateChanged(RecyclerView recyclerView,int newState)
-                    {
 
-                    }
                 });
 
             }
