@@ -109,7 +109,7 @@ public class ScrollingActivity extends AppCompatActivity {
                 }
                 else
                    dataArrayList = response.body();
-                //   myPrefs.saveUsers(dataArrayList);
+
 
                 adapter.setAdapterToDisplay(dataArrayList,mrecyclerView);
                 //  Toast.makeText(getBaseContext(),"he  "+dataArrayList, Toast.LENGTH_LONG).show();
