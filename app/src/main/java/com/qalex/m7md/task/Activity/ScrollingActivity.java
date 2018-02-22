@@ -11,7 +11,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.qalex.m7md.task.Adapter.SetAdapter;
-import com.qalex.m7md.task.Adapter.UserAdapter;
 import com.qalex.m7md.task.Storage.SharedPreferenceUtilities;
 import com.qalex.m7md.task.rest.ApiClient;
 import com.qalex.m7md.task.rest.ApiInterface;
@@ -29,14 +28,9 @@ import retrofit2.Response;
 public class ScrollingActivity extends AppCompatActivity {
 
 
-    Boolean more = false, DataAvailable = true;
-    LinearLayoutManager mLayoutManager;
-   // private boolean loading = true;
-   // int pastVisiblesItems, visibleItemCount, totalItemCount;
-
+    private Boolean more = false, DataAvailable = true;
     private RecyclerView mrecyclerView;
     private SetAdapter adapter;
-    private UserAdapter userAdapter;
 
     private final static int ID = 0;
     private final static int per_page = 10;
@@ -118,28 +112,11 @@ public class ScrollingActivity extends AppCompatActivity {
                 //   myPrefs.saveUsers(dataArrayList);
 
                 adapter.setAdapterToDisplay(dataArrayList,mrecyclerView);
-             //   userAdapter.notifyDataSetChanged();
                 //  Toast.makeText(getBaseContext(),"he  "+dataArrayList, Toast.LENGTH_LONG).show();
 
-          //      myPrefs.saveUsers(getApplicationContext(),response.body());
+               myPrefs.saveUsers(dataArrayList);
 
-                  //  Toast.makeText(getBaseContext(),"he  "+dataArrayList.get(1).getLogIn(), Toast.LENGTH_LONG).show();
-               /* userAdapter.setLoadMoreListener(new UserAdapter.OnLoadMoreListener() {
-                    @Override
-                    public void onLoadMore() {
 
-                        mrecyclerView.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                int index = userAdapter.getItemCount() - 1;
-                                loadMore(index);
-                            }
-                        });
-                        //Calling loadMore function in Runnable to fix the
-                        // java.lang.IllegalStateException: Cannot call this method while RecyclerView is computing a layout or scrolling error
-                    }
-                });
-*/
          mrecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener()
                 {
 
@@ -169,24 +146,6 @@ public class ScrollingActivity extends AppCompatActivity {
 
                     }
                 });
-
-
-           /*     mrecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                    @Override
-                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                       // LinearLayoutManager layoutManager=LinearLayoutManager.class.cast(recyclerView.getLayoutManager());
-                        int totalItemCount = mLayoutManager.getItemCount();
-                        int lastVisible = mLayoutManager.findLastVisibleItemPosition();
-
-                        boolean endHasBeenReached = lastVisible + 5 >= totalItemCount;
-                        if (totalItemCount > 0 && endHasBeenReached) {
-                            //you have reached to the bottom of your recycler view
-                            int inc = ID + 10;
-                            callingAPI(inc);
-                        }
-                    }
-                });*/
-
 
             }
 

@@ -17,6 +17,8 @@ public class SharedPreferenceUtilities {
     private SharedPreferences sharedData;
     private SharedPreferences.Editor editor;
     private List<User> list_User_Cached=null;
+    private List<User> holderArrayList = null;
+
     private Gson gson;
     private Context context;
     private Type listOfObjects;
@@ -32,6 +34,15 @@ public class SharedPreferenceUtilities {
     }
 
     public void saveUsers( List<User> userData) {
+        /////////////////////////////////////////////// load old data to be appended
+        json = sharedData.getString("User","");
+        if(json != null){
+
+
+            holderArrayList.addAll(userData);
+            userData =  LoadSharedData();
+            userData.addAll(holderArrayList);
+        }
 
         json = gson.toJson(userData);
         editor.putString("User", json);
